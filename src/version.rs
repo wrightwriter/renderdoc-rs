@@ -3,13 +3,22 @@
 use std::os::raw::c_void;
 use std::path::Path;
 
-use libloading::{Library, Symbol};
+use libloading::os::windows::Library as WinLibrary;
+use libloading::os::unix::{Library as UnixLibrary, RTLD_NOW};
 use once_cell::sync::OnceCell;
 use renderdoc_sys::RENDERDOC_API_1_4_1;
 
+#[cfg(windows)]
+use libloading::os::windows::Symbol;
+#[cfg(unix)]
+use libloading::os::unix::Symbol;
+
 use crate::error::Error;
 
-static RD_LIB: OnceCell<Library> = OnceCell::new();
+#[cfg(windows)]
+static RD_LIB: OnceCell<WinLibrary> = OnceCell::new();
+#[cfg(unix)]
+static RD_LIB: OnceCell<UnixLibrary> = OnceCell::new();
 
 #[cfg(windows)]
 fn get_path() -> &'static Path {
@@ -62,6 +71,22 @@ pub enum VersionCode {
 /// This function is not thread-safe and should not be called on multiple threads at once.
 type GetApiFn = unsafe extern "C" fn(ver: VersionCode, out: *mut *mut c_void) -> i32;
 
+/// OS Specific Ways to open RenderDoc API
+#[cfg(windows)]
+fn open_library<P>(path: P) -> Result<WinLibrary, libloading::Error> {
+    unsafe {
+        WinLibrary::open_already_loaded(path)
+    }
+}
+
+#[cfg(unix)]
+fn open_library<P>(path: P) -> Result<UnixLibrary, libloading::Error> {
+    unsafe {
+        // The 0x4 is the hardcode of the RTLD_NOLOAD flag, according to libc crate
+        UnixLibrary::open(path, RTLD_NOW | 0x4)
+    }
+}
+
 /// Entry point into the RenderDoc API.
 pub trait Version {
     /// Minimum compatible version number.
@@ -77,7 +102,7 @@ pub trait Version {
 
         unsafe {
             let lib = RD_LIB
-                .get_or_try_init(|| Library::new(get_path()))
+                .get_or_try_init(|| open_library(get_path()))
                 .map_err(Error::library)?;
 
             let get_api: Symbol<GetApiFn> =
