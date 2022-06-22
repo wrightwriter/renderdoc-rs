@@ -71,7 +71,7 @@ pub enum VersionCode {
 /// This function is not thread-safe and should not be called on multiple threads at once.
 type GetApiFn = unsafe extern "C" fn(ver: VersionCode, out: *mut *mut c_void) -> i32;
 
-/// OS Specific Ways to open RenderDoc API
+// OS Specific Ways to open RenderDoc API
 #[cfg(windows)]
 fn open_library<P>(path: P) -> Result<WinLibrary, libloading::Error> {
     unsafe {
