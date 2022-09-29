@@ -76,8 +76,8 @@ type GetApiFn = unsafe extern "C" fn(ver: VersionCode, out: *mut *mut c_void) ->
 #[cfg(windows)]
 fn open_library<P: std::convert::AsRef<std::ffi::OsStr>>(path: P) -> Result<WinLibrary, libloading::Error> {
     unsafe {
-        WinLibrary::load_with_flags(path,0)
-        // WinLibrary::open_already_loaded(path)
+        // WinLibrary::load_with_flags(path,0)
+        WinLibrary::open_already_loaded(path)
     }
 }
 
