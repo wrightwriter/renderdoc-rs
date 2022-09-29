@@ -4,6 +4,7 @@ use std::os::raw::c_void;
 use std::path::Path;
 
 use libloading::os::windows::Library as WinLibrary;
+#[cfg(unix)]
 use libloading::os::unix::{Library as UnixLibrary, RTLD_NOW};
 use once_cell::sync::OnceCell;
 use renderdoc_sys::RENDERDOC_API_1_4_1;
@@ -73,7 +74,7 @@ type GetApiFn = unsafe extern "C" fn(ver: VersionCode, out: *mut *mut c_void) ->
 
 // OS Specific Ways to open RenderDoc API
 #[cfg(windows)]
-fn open_library<P>(path: P) -> Result<WinLibrary, libloading::Error> {
+fn open_library<P: std::convert::AsRef<std::ffi::OsStr>>(path: P) -> Result<WinLibrary, libloading::Error> {
     unsafe {
         WinLibrary::open_already_loaded(path)
     }
